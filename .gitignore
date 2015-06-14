@@ -1,0 +1,6 @@
+.idea/
+redwood_cli.egg-info/
+*.pyc
+dist/
+.coverage
+htmlcov/
