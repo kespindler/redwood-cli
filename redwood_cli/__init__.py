@@ -40,7 +40,7 @@ def make_auth(config):
 
 def get_lists(args, config):
     res = requests.get(config['base_url'] + '/api/list', auth=make_auth(config))
-    print_list(res.json()['metrics'])
+    print_list(res.json()['data'])
 
 
 def post_list(args, config):
