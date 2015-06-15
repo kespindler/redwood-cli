@@ -11,6 +11,15 @@ from datetime import datetime
 EPOCH = datetime(1970, 1, 1)
 
 
+def print_list(list_):
+    for item in list_:
+        string = u'%d %s' % (item['id'], item['name'])
+        if item.get('values'):
+            value = item['values'][-1]['value']
+            string += '\t%s' % value
+        print string
+
+
 def epoch_seconds(t):
     return (t - EPOCH).total_seconds()
 
@@ -31,19 +40,25 @@ def make_auth(config):
 
 def get_lists(args, config):
     res = requests.get(config['base_url'] + '/api/list', auth=make_auth(config))
-    for list_ in res.json()['data']:
-        print '%d\t%s' % (list_['id'], list_['name'])
+    print_list(res.json()['metrics'])
+
+
+def post_list(args, config):
+    data = dict(name=args.name)
+    body = json.dumps(data)
+    url = config['base_url'] + '/api/list'
+    res = requests.post(url, auth=make_auth(config), data=body, headers={'content-type': 'application/json'})
+    if 200 <= res.status_code < 300:
+        print_list([res.json()])
+    else:
+        print res
 
 
 def get_list_data(args, config):
     res = requests.get(config['base_url'] + '/api/list/%s/data' % (args.list_id, ), auth=make_auth(config))
     data = res.json()
     print data['name']
-    for metric in res.json()['metrics']:
-        value = ''
-        if metric['values']:
-            value = metric['values'][-1]['value']
-        print u'%d %s\t%s' % (metric['id'], metric['name'], value)
+    print_list(data['metrics'])
 
 
 def post_metric_id_data(args, config):
@@ -68,7 +83,9 @@ def post_metric(args, config):
     body = json.dumps(data)
     url = config['base_url'] + '/api/metric'
     res = requests.post(url, auth=make_auth(config), data=body, headers={'content-type': 'application/json'})
-    if not (200 <= res.status_code < 300):
+    if 200 <= res.status_code < 300:
+        print_list([res.json()])
+    else:
         print res
 
 
@@ -94,6 +111,10 @@ def main():
     list_parser.add_argument('list_id')
     list_parser.add_argument('name')
     list_parser.set_defaults(func=post_metric)
+
+    list_parser = subparsers.add_parser('new_list')
+    list_parser.add_argument('name')
+    list_parser.set_defaults(func=post_list)
 
     args = parser.parse_args()
     args.func(args, config)
