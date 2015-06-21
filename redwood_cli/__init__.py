@@ -55,27 +55,37 @@ def post_list(args, config):
 
 
 def get_list_data(args, config):
-    res = requests.get(config['base_url'] + '/api/list/%s/data' % (args.list_id, ), auth=make_auth(config))
+    res = requests.get(config['base_url'] + '/api/list/%s/data' % (args.list_id, ), 
+        auth=make_auth(config),
+    )
     data = res.json()
     print data['name']
     print_list(data['metrics'])
 
 
 def post_metric_id_data(args, config):
-    data = dict(value=args.value)
-    if args.datetime:
-        dt = dateutil.parser.parse(
-            args.datetime).astimezone(
-            dateutil.tz.tzlocal).astimezone(
-            dateutil.tz.tzutc).replace(
-            tzinfo=None
-        )
-        data['datetime'] = epoch_seconds(dt)
-    body = json.dumps(data)
-    url = config['base_url'] + '/api/metric/%s/data' % (args.metric_id, )
-    res = requests.post(url, auth=make_auth(config), data=body, headers={'content-type': 'application/json'})
-    if res.status_code != 200:
-        print res
+    pairs = [(int(metric), float(value)) 
+             for metric, value in zip(args.args[::2], args.args[1::2])]
+    if args.datetime is not None:
+        dt = dateutil.parser.parse(args.datetime)
+        if dt.tzinfo is None:
+            dt = dt.replace(
+                tzinfo=dateutil.tz.tzlocal()).astimezone(
+                dateutil.tz.tzutc()).replace(
+                tzinfo=None
+            )
+    else:
+        dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    timestamp = epoch_seconds(dt)
+    for metric, value in pairs:
+        body = json.dumps(dict(
+            value=value,
+            timestamp=timestamp))
+        url = config['base_url'] + '/api/metric/%s/data' % (metric, )
+        res = requests.post(url, auth=make_auth(config), data=body, headers={'content-type': 'application/json'})
+        if res.status_code != 200:
+            import ipdb;ipdb.set_trace()
+            print res
 
 
 def post_metric(args, config):
@@ -102,9 +112,10 @@ def main():
     list_parser.set_defaults(func=get_list_data)
 
     list_parser = subparsers.add_parser('record')
-    list_parser.add_argument('metric_id')
-    list_parser.add_argument('value')
-    list_parser.add_argument('datetime', default=None, nargs='?')
+    list_parser.add_argument('-d', '--datetime', default=None, nargs='?')
+    list_parser.add_argument('args', nargs='+', help='Args should be alternating '
+        'pairs of metric_id value. e.g. record 4 150 5 1 6 0 '
+        'to record 150 for metric 4, 1 for 5, and 0 for 6')
     list_parser.set_defaults(func=post_metric_id_data)
 
     list_parser = subparsers.add_parser('new_metric')
