@@ -75,7 +75,8 @@ def post_metric_id_data(args, config):
                 tzinfo=None
             )
     else:
-        dt = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        dt = datetime.utcnow()
+    dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
     timestamp = epoch_seconds(dt)
     for metric, value in pairs:
         body = json.dumps(dict(
