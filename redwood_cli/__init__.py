@@ -10,6 +10,10 @@ from datetime import datetime
 
 EPOCH = datetime(1970, 1, 1)
 
+# All functions follow format of, 
+# form URL, make req, print debug if not in range(200, 300), format print the result
+# should be able to formulate things more cleanly
+
 
 def print_list(list_):
     for item in list_:
@@ -55,8 +59,15 @@ def post_list(args, config):
 
 
 def get_list_data(args, config):
-    res = requests.get(config['base_url'] + '/api/list/%s/data' % (args.list_id, ), 
+    dt = datetime.now().replace(
+        hour=0, minute=0, second=0, microsecond=0,
+        tzinfo=dateutil.tz.tzlocal()).astimezone(
+        dateutil.tz.tzutc()).replace(
+        tzinfo=None)
+    res = requests.get(
+        config['base_url'] + '/api/list/%s/data' % (args.list_id, ),
         auth=make_auth(config),
+        params=dict(timestamp=int(epoch_seconds(dt)))
     )
     data = res.json()
     print data['name']
